@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>装箱计算器 · Midnight Gold · Mr.Jiang</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f0f12;
+            --surface: #1a1a20;
+            --surface2: #222229;
+            --border: #2a2a33;
+            --border2: #3a3a45;
+            --text: #f0ece4;
+            --text2: #c8c2b8;
+            --text3: #6e6a62;
+            --gold: #d4a853;
+            --gold2: #b8912e;
+            --gold-glow: rgba(212,168,83,0.12);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        /* subtle radial glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%; left: 50%;
+            transform: translateX(-50%);
+            width: 800px; height: 600px;
+            background: radial-gradient(ellipse, rgba(212,168,83,0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body > * { position: relative; z-index: 1; }
+
+        /* ===== Header ===== */
+        .header {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 56px 32px 40px;
+        }
+        .brand {
+            font-size: 0.7em;
+            font-weight: 700;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 14px;
+        }
+        .header h1 {
+            font-size: clamp(2.4em, 5vw, 3.4em);
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+        .header .sub {
+            margin-top: 8px;
+            font-size: 0.88em;
+            color: var(--text3);
+            font-weight: 400;
+        }
+
+        /* ===== Wrap ===== */
+        .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+
+        .section-label {
+            font-size: 0.72em;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin: 36px 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border), transparent);
+        }
+
+        /* ===== Product Grid ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            gap: 14px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .item:hover {
+            border-color: var(--border2);
+            background: var(--surface2);
+        }
+
+        .name {
+            flex: 1;
+            font-size: 0.92em;
+            font-weight: 500;
+            color: var(--text2);
+            cursor: grab;
+            user-select: none;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .name:active { cursor: grabbing; }
+
+        .stepper {
+            display: flex;
+            align-items: center;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .sbtn {
+            width: 34px; height: 34px;
+            background: none; border: none;
+            cursor: pointer; font-size: 1.1em;
+            font-weight: 400; color: var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .sbtn:hover { background: var(--gold-glow); }
+        input[type="number"] {
+            width: 44px; height: 34px;
+            background: var(--bg); border: none;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            color: var(--text); font-size: 0.95em; font-weight: 700;
+            text-align: center;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+            outline: none;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* ===== Results Bar ===== */
+        .results {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .rcard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+        }
+        .rlabel {
+            font-size: 0.68em;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin-bottom: 10px;
+        }
+        .rval {
+            font-size: 2.6em;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            line-height: 1;
+        }
+        .rval.active { color: var(--gold); }
+        .runit {
+            font-size: 0.26em;
+            font-weight: 500;
+            color: var(--text3);
+            margin-left: 4px;
+        }
+        .rnote {
+            margin-top: 10px;
+            font-size: 0.75em;
+            color: var(--text3);
+            line-height: 1.5;
+        }
+        .rnote strong { color: var(--gold); font-weight: 600; }
+
+        /* ===== Volumetric Weight — Side Layout ===== */
+        .vol-section { margin-top: 28px; }
+
+        .vol-row {
+            display: flex;
+            gap: 12px;
+        }
+        .vol-main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .vcard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            transition: border-color 0.2s;
+        }
+        .vcard:hover { border-color: var(--border2); }
+
+        .vcard .vlabel {
+            font-size: 0.92em;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 3px;
+        }
+        .vcard .vdivisor {
+            font-size: 0.72em;
+            color: var(--text3);
+            margin-bottom: 18px;
+            font-weight: 500;
+        }
+        .vcard .vweight {
+            font-size: 2.4em;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            color: var(--text);
+        }
+        .vcard .vweight.active { color: var(--gold); }
+        .vcard .vunit {
+            font-size: 0.26em;
+            font-weight: 500;
+            color: var(--text3);
+            margin-left: 2px;
+        }
+        .vcard .perbox {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: var(--text3);
+            font-weight: 400;
+        }
+
+        /* Side Rail — Gold accent */
+        .vcard-side {
+            background: linear-gradient(180deg, #1e1e26, #161619);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 22px;
+            width: 190px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .vcard-side::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+        .vcard-side .side-title {
+            font-size: 0.68em;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin-bottom: 18px;
+        }
+        .vcard-side .side-item {
+            font-size: 0.85em;
+            font-weight: 500;
+            color: var(--text2);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .vcard-side .side-item:last-child { border-bottom: none; }
+        .vcard-side .side-icon {
+            width: 6px; height: 6px;
+            background: var(--gold);
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px var(--gold-glow);
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            padding: 14px 44px;
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold2);
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: var(--gold-glow);
+            border-color: var(--gold);
+        }
+        .btn-reset {
+            padding: 8px 24px;
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold2);
+            border-radius: 8px;
+            font-size: 0.78em;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            float: right;
+        }
+        .btn-reset:hover {
+            background: var(--gold-glow);
+            border-color: var(--gold);
+        }
+
+        /* ===== Upload Zone ===== */
+        .upload-zone {
+            border: 2px dashed var(--border2);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: var(--surface);
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--gold);
+            background: var(--surface2);
+            box-shadow: 0 0 0 3px var(--gold-glow);
+        }
+        .upload-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .upload-icon { font-size: 2.4em; line-height: 1; }
+        .upload-text strong {
+            display: block;
+            font-size: 0.95em;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .upload-text span {
+            display: block;
+            font-size: 0.76em;
+            color: var(--text3);
+            margin-top: 3px;
+        }
+        .paste-toggle {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.8em;
+            color: var(--gold);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            transition: color 0.2s;
+        }
+        .paste-toggle:hover { color: var(--text); }
+        .paste-area {
+            margin-top: 12px;
+            display: none;
+            gap: 10px;
+        }
+        .paste-area.show { display: flex; }
+        .paste-area textarea {
+            flex: 1;
+            min-height: 110px;
+            padding: 14px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.88em;
+            font-family: inherit;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .paste-area textarea:focus { border-color: var(--gold2); }
+        .btn-sm {
+            padding: 10px 24px;
+            font-size: 0.8em;
+            align-self: flex-start;
+            white-space: nowrap;
+        }
+
+        /* ===== Upload Status ===== */
+        .upload-loading {
+            display: none;
+            margin-top: 14px;
+            padding: 16px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.88em;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        .upload-loading.show { display: block; }
+        .upload-loading .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid var(--border2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 8px;
+            vertical-align: -2px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .upload-status {
+            margin-top: 14px;
+            display: none;
+        }
+        .upload-status.show { display: block; }
+        .us-summary {
+            padding: 16px 18px;
+            background: var(--surface);
+            border: 1px solid var(--gold2);
+            border-radius: var(--radius-sm);
+            font-size: 0.88em;
+            color: var(--text2);
+        }
+        .us-summary strong { color: var(--gold); }
+        .us-summary.error { border-color: rgba(255,100,80,0.4); color: #ff8060; }
+
+        /* ===== Footer ===== */
+        .footer {
+            max-width: 1080px;
+            margin: 48px auto 0;
+            padding: 20px 32px;
+            text-align: center;
+            font-size: 0.72em;
+            color: var(--text3);
+            letter-spacing: 0.08em;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .results { grid-template-columns: 1fr 1fr; }
+            .vol-row { flex-direction: column; }
+            .vol-main { grid-template-columns: 1fr; }
+            .vcard-side { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 18px; }
+            .vcard-side .side-item { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">Mr.Jiang Pet Grooming</div>
+        <button class="btn-reset" onclick="resetAll()">重置 Reset</button>
+        <h1>装箱计算器</h1>
+        <div class="sub">Packing Calculator — Volumetric Weight Tool</div>
+    </div>
+
+    <div class="wrap">
+        <div class="section-label">导入订单 · Import Order</div>
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-inner">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">
+                    <strong>点击上传或拖拽文件到此区域</strong>
+                    <span>支持 PDF · Excel(xls/xlsx) · TXT · CSV · 自动识别产品并填入数量</span>
+                </div>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf,.xls,.xlsx,.txt,.csv" hidden>
+        </div>
+        <div class="paste-toggle" id="pasteToggle">或粘贴文字（产品名 + 数量）</div>
+        <div class="paste-area" id="pasteArea">
+            <textarea id="pasteText" placeholder="每行一个产品，支持多种格式，例如：&#10;&#10;泰迪全身模型 5&#10;比熊全身毛 x 10&#10;泰迪头模: 3&#10;小犬全身毛 8个"></textarea>
+            <button class="btn btn-sm" onclick="parsePaste()">解析文字</button>
+        </div>
+        <div class="upload-loading" id="uploadLoading"><span class="spinner"></span>正在解析文件…</div>
+        <div class="upload-status" id="uploadStatus"></div>
+
+        <div class="section-label">产品列表</div>
+        <div class="grid" id="list"></div>
+
+        <div class="section-label">装箱结果</div>
+        <div class="results">
+            <div class="rcard">
+                <div class="rlabel">箱数</div>
+                <div class="rval" id="boxCount">0<span class="runit">个</span></div>
+                <div class="rnote" id="boxNote"></div>
+            </div>
+            <div class="rcard">
+                <div class="rlabel">实际重量</div>
+                <div class="rval" id="totalWeight">0<span class="runit">kg</span></div>
+                <div class="rnote" id="weightNote"></div>
+            </div>
+            <div class="rcard">
+                <div class="rlabel">CBM</div>
+                <div class="rval" id="totalCBM">0<span class="runit">CBM</span></div>
+            </div>
+        </div>
+
+        <div class="vol-section">
+            <div class="section-label">体积重量 · Volumetric Weight</div>
+            <div class="vol-row">
+                <div class="vol-main">
+                    <div class="vcard">
+                        <div class="vlabel">快递 Express</div>
+                        <div class="vdivisor">DHL · UPS · FedEx &nbsp;|&nbsp; ÷ 5000</div>
+                        <div class="vweight" id="volExpress">0<span class="vunit">kg</span></div>
+                        <div class="perbox">单箱体积重: 20.03 kg</div>
+                    </div>
+                    <div class="vcard">
+                        <div class="vlabel">空运 / 铁路 / 海运</div>
+                        <div class="vdivisor">Air · Rail · Sea &nbsp;|&nbsp; ÷ 6000</div>
+                        <div class="vweight" id="volFreight">0<span class="vunit">kg</span></div>
+                        <div class="perbox">单箱体积重: 16.70 kg</div>
+                    </div>
+                </div>
+                <div class="vcard-side">
+                    <div class="side-title">运输方式</div>
+                    <div class="side-item"><span class="side-icon"></span>空运 Air Freight</div>
+                    <div class="side-item"><span class="side-icon"></span>铁路 Rail Freight</div>
+                    <div class="side-item"><span class="side-icon"></span>海运 Sea Freight</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">Mr.Jiang Pet Grooming · Packing Calculator v3.0 Midnight Gold · 2026</div>
+
+    <script>
+        const products = [
+            { name: '泰迪全身模型',            volume: 0.0050085,            weight: 0.650 },
+            { name: '泰迪/拉姆全身毛',         volume: 0.002086875,          weight: 0.250 },
+            { name: '泰迪头模',                volume: 0.004553182,          weight: 0.400 },
+            { name: '泰迪头毛',                volume: 0.00050085,           weight: 0.060 },
+            { name: '比熊全身模型',            volume: 0.010017,             weight: 0.900 },
+            { name: '比熊全身毛',              volume: 0.002636053,          weight: 0.310 },
+            { name: '比熊头模',                volume: 0.00455318181818182,  weight: 0.350 },
+            { name: '比熊头毛',                volume: 0.0007155,            weight: 0.100 },
+            { name: '拉姆全身模型',            volume: 0.005565,             weight: 0.700 },
+            { name: '剪刀收纳架',              volume: 0.002385,             weight: 0.300 },
+            { name: '多功能小犬模型',          volume: 0.00417375,           weight: 0.450 },
+            { name: '小犬全身毛',              volume: 0.000770538461538462, weight: 0.125 },
+            { name: '泰迪头模组/支架盒装',     volume: 0.002385,             weight: 0.440 },
+            { name: '圆筒/方毛片5个装/腿毛组', volume: 0.0016695,            weight: 0.250 },
+        ];
+
+        const BOX_L = 54, BOX_W = 35, BOX_H = 53;
+        const BOX_VOL_CM3 = BOX_L * BOX_W * BOX_H;
+        const BOX_VOLUME  = BOX_VOL_CM3 / 1000000;
+        const BOX_VW_EXPRESS = BOX_VOL_CM3 / 5000;
+        const BOX_VW_FREIGHT = BOX_VOL_CM3 / 6000;
+
+        function calcTareWeight(boxCount) {
+            if (boxCount <= 0) return 0;
+            if (boxCount < 0.5) return 0.6;
+            return Math.ceil(boxCount) * 1.2;
+        }
+
+        let dragIdx = null, dragEl = null;
+
+        function create() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            products.forEach((p, i) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.setAttribute('data-index', i);
+                item.innerHTML =
+                    `<div class="name" draggable="true" data-index="${i}" title="${p.name}">${p.name}</div>` +
+                    `<div class="stepper">` +
+                    `<button class="sbtn" onclick="step(${i},-1)">−</button>` +
+                    `<input type="number" id="q${i}" min="0" value="0" oninput="calc()">` +
+                    `<button class="sbtn" onclick="step(${i},1)">+</button>` +
+                    `</div>`;
+                list.appendChild(item);
+
+                const nameEl = item.querySelector('.name');
+                nameEl.addEventListener('dragstart', function(s) {
+                    dragEl = this; dragIdx = i; this.style.opacity = '0.3';
+                    s.dataTransfer.effectAllowed = 'move';
+                });
+                nameEl.addEventListener('dragend', function() {
+                    this.style.opacity = '1';
+                    dragEl = null; dragIdx = null;
+                });
+            });
+
+            list.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+            list.addEventListener('drop', e => {
+                e.stopPropagation();
+                const t = closest(e.target); if (!t) return;
+                let ti = parseInt(t.dataset.index);
+                const mov = products.splice(dragIdx, 1)[0];
+                let at = e.clientY < t.getBoundingClientRect().top + t.getBoundingClientRect().height / 2 ? ti : ti + 1;
+                if (dragIdx < ti) at--;
+                products.splice(at, 0, mov);
+                create(); calc();
+            });
+        }
+
+        function step(i, d) {
+            const e = document.getElementById(`q${i}`);
+            const v = parseFloat(e.value) || 0;
+            e.value = parseFloat(Math.max(0, v + d).toFixed(2));
+            calc();
+        }
+
+        function calc() {
+            let vol = 0, wt = 0;
+            products.forEach((p, i) => {
+                const q = parseFloat(document.getElementById(`q${i}`).value) || 0;
+                vol += p.volume * q;
+                wt += p.weight * q;
+            });
+
+            const boxes = vol / BOX_VOLUME;
+            const cbm   = vol;
+            const tare  = calcTareWeight(boxes);
+            const actWt = wt + tare;
+            const volCm3 = vol * 1000000;
+
+            setRCard('boxCount', boxes > 0 ? boxes.toFixed(2) : '0', '个', boxes > 0);
+            document.getElementById('boxNote').innerHTML =
+                boxes > 0 && boxes < 1 ? `不满1箱，按${boxes.toFixed(2)}箱计` : '';
+
+            setRCard('totalWeight', actWt > 0 ? actWt.toFixed(2) : '0', 'kg', actWt > 0);
+            document.getElementById('weightNote').innerHTML =
+                tare > 0 ? `含皮重 <strong>${tare.toFixed(1)}kg</strong> (产品${wt.toFixed(2)}kg)` : '';
+
+            setRCard('totalCBM', cbm > 0 ? cbm.toFixed(4) : '0', 'CBM', cbm > 0);
+
+            const vwExpress  = volCm3 / 5000;
+            const vwFreight  = volCm3 / 6000;
+
+            setVolCard('volExpress', vwExpress, actWt);
+            setVolCard('volFreight', vwFreight, actWt);
+        }
+
+        function setRCard(id, val, unit, active) {
+            const el = document.getElementById(id);
+            el.innerHTML = `${val}<span class="runit">${unit}</span>`;
+            el.classList.toggle('active', active);
+        }
+
+        function setVolCard(id, volWt, actWt) {
+            const el = document.getElementById(id);
+            if (volWt > 0) {
+                el.innerHTML = `${volWt.toFixed(2)}<span class="vunit">kg</span>`;
+                el.classList.toggle('active', volWt > actWt);
+            } else {
+                el.innerHTML = `0<span class="vunit">kg</span>`;
+                el.classList.remove('active');
+            }
+        }
+
+        function resetAll() {
+            products.forEach((_, i) => { document.getElementById(`q${i}`).value = 0; });
+            calc();
+        }
+
+        function closest(el) {
+            while (el && !el.classList?.contains('item')) {
+                el = el.parentNode;
+                if (el === document.body) return null;
+            }
+            return el;
+        }
+
+        // ===== Order File Import =====
+
+        const PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        const PDFJS_WORKER_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const XLSX_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector('script[data-src="' + src + '"]')) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = src;
+                s.setAttribute('data-src', src);
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('无法加载 ' + src + '，请检查网络连接'));
+                document.head.appendChild(s);
+            });
+        }
+
+        // ===== Product Detail Map (from 计算器数量.xls) =====
+        // Ordered so more-specific English names match before less-specific ones
+        // div: 1 = 1:1, 5 = 5pcs per calc unit (圆筒/方毛块), 4 = 4pcs per calc unit (腿毛)
+        const detailMap = [
+            // === Teacup / Small breed hairs → calcIdx 11 (小犬全身毛) — MUST come before Teddy full body hair ===
+            { code: '064', en: 'Teacup teddy full body hair', cn: '茶杯泰迪全身毛', calcIdx: 11, div: 1 },
+            { code: '065', en: 'Teacup teddy full body hair', cn: '茶杯泰迪全身毛', calcIdx: 11, div: 1 },
+            { code: '066', en: 'Teacup teddy full body hair', cn: '茶杯泰迪全身毛', calcIdx: 11, div: 1 },
+            { code: '067', en: 'Teacup teddy full body hair', cn: '茶杯泰迪全身毛', calcIdx: 11, div: 1 },
+            { code: '058', en: 'Shih Tzu full body hair', cn: '西施全身毛', calcIdx: 11, div: 1 },
+            { code: '059', en: 'Shih Tzu full body hair', cn: '西施全身毛', calcIdx: 11, div: 1 },
+            { code: '060', en: 'Shih Tzu full body hair', cn: '西施全身毛', calcIdx: 11, div: 1 },
+            { code: '070', en: 'Shih Tzu full body hair', cn: '西施全身毛', calcIdx: 11, div: 1 },
+            { code: '061', en: 'Maltese full body hair', cn: '马尔济斯全身毛', calcIdx: 11, div: 1 },
+            { code: '062', en: 'Yorkshire full body hair', cn: '约克夏全身毛', calcIdx: 11, div: 1 },
+            { code: '063', en: 'Yorkshire full body hair', cn: '约克夏全身毛', calcIdx: 11, div: 1 },
+            // === Standing ear teddy head fur → calcIdx 3 (泰迪头毛) — distinct from regular teddy head hair ===
+            { code: '022', en: 'Standing ear teddy head fur', cn: '立耳泰迪头毛', calcIdx: 3, div: 1 },
+            // === Portable head model / brackets → calcIdx 12 (泰迪头模组/支架盒装) — MUST come before Teddy head model ===
+            { code: '013', en: 'Portable head model combination', cn: '便携式头模组', calcIdx: 12, div: 1 },
+            { code: '014', en: 'Portable teddy head model stand', cn: '便携式泰迪头模支架', calcIdx: 12, div: 1 },
+            { code: '015', en: 'Triangle bracket', cn: '三角支架', calcIdx: 12, div: 1 },
+            { code: '034', en: 'Cylindrical film exercise bracket', cn: '圆筒毛片练习支架', calcIdx: 12, div: 1 },
+            // === Cylinder / Square hair block / Leg hairs → calcIdx 13 (圆筒/方毛片5个装/腿毛组) ===
+            { code: '035', en: 'Cylinder', cn: '圆筒毛片', calcIdx: 13, div: 5 },
+            { code: '036', en: 'Square hair block', cn: '方毛块', calcIdx: 13, div: 5 },
+            { code: '033', en: 'Leg exercise hair', cn: '腿部练习毛', calcIdx: 13, div: 4 },
+            { code: '053', en: 'Left front leg hair', cn: '左前腿毛', calcIdx: 13, div: 4 },
+            { code: '054', en: 'Right front leg hair', cn: '右前腿毛', calcIdx: 13, div: 4 },
+            { code: '055', en: 'Left hind leg hair', cn: '左后腿毛', calcIdx: 13, div: 4 },
+            { code: '056', en: 'Right hind leg hair', cn: '右后腿毛', calcIdx: 13, div: 4 },
+            // === Multi-purpose small dog model → calcIdx 10 ===
+            { code: '057', en: 'Multi-purpose small dog model', cn: '多功能小犬模型', calcIdx: 10, div: 1 },
+            // === Extra long hair → calcIdx 1 (泰迪/拉姆全身毛) ===
+            { code: '046', en: 'Extra long hair', cn: '特级长毛', calcIdx: 1, div: 1 },
+            // === Teddy basic models → calcIdx 0 / 2 / 3 (after specific ones above) ===
+            { code: '001', en: 'Teddy full body model', cn: '泰迪全身模型', calcIdx: 0, div: 1 },
+            { code: '002', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '003', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '004', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '005', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '006', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '007', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '008', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '009', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '010', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '011', en: 'Teddy full body hair', cn: '泰迪全身毛', calcIdx: 1, div: 1 },
+            { code: '012', en: 'Teddy head model', cn: '泰迪头模', calcIdx: 2, div: 1 },
+            { code: '016', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '017', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '018', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '019', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '020', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '021', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '023', en: 'Standing ear teddy head fur', cn: '立耳泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '024', en: 'Standing ear teddy head fur', cn: '立耳泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '025', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '026', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '027', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            { code: '028', en: 'Teddy head hair', cn: '泰迪头毛', calcIdx: 3, div: 1 },
+            // === Bichon → calcIdx 4 / 5 / 6 / 7 ===
+            { code: '029', en: 'Bichon full body model', cn: '比熊全身模型', calcIdx: 4, div: 1 },
+            { code: '030', en: 'Bichon full body hair', cn: '比熊全身毛', calcIdx: 5, div: 1 },
+            { code: '031', en: 'Bichon head model', cn: '比熊头模', calcIdx: 6, div: 1 },
+            { code: '032', en: 'Bichon head hair', cn: '比熊头毛', calcIdx: 7, div: 1 },
+            // === Ram → calcIdx 8 / 1 ===
+            { code: '037', en: 'Ram full body model', cn: '拉姆全身模型', calcIdx: 8, div: 1 },
+            { code: '038', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '039', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '040', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '041', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '042', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '043', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '044', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            { code: '045', en: 'Ram full body hair', cn: '拉姆全身毛', calcIdx: 1, div: 1 },
+            // === Desk clip → calcIdx 9 ===
+            { code: '047', en: 'Desk clip', cn: '剪刀收纳架', calcIdx: 9, div: 1 },
+            // === Accessories — no volume/weight, skip in import (calcIdx: -1) ===
+            { code: '048', en: 'Teddy eyes nose', cn: '泰迪眼睛鼻子', calcIdx: -1, div: 1 },
+            { code: '049', en: 'Bichon eyes nose', cn: '比熊眼睛鼻子', calcIdx: -1, div: 1 },
+            { code: '050', en: 'Ram eyes nose', cn: '拉姆眼睛鼻子', calcIdx: -1, div: 1 },
+            { code: '051', en: 'Poster', cn: '海报', calcIdx: -1, div: 1 },
+            { code: '052', en: 'Sketchbook', cn: '素描册', calcIdx: -1, div: 1 },
+            { code: '069', en: 'Small dog eyes nose', cn: '小犬眼睛鼻子', calcIdx: -1, div: 1 },
+        ];
+
+        function lookupDetail(text) {
+            const tl = text.toLowerCase().trim();
+            // Match by code (exact number match)
+            for (const d of detailMap) {
+                if (d.code) {
+                    const re = new RegExp('(?:^|[^0-9])' + d.code + '(?:[^0-9]|$)', 'i');
+                    if (re.test(text)) return d;
+                }
+            }
+            // Match by English name — order text must contain the English pattern
+            for (const d of detailMap) {
+                if (d.en && tl.includes(d.en.toLowerCase())) return d;
+            }
+            // Match by Chinese name
+            for (const d of detailMap) {
+                if (d.cn && text.includes(d.cn)) return d;
+            }
+            return null;
+        }
+
+        // Product match patterns — ordered so longer/more-specific patterns are checked first
+        // NOTE: These are Chinese patterns for text parsing fallback. Excel uses detailMap (English/Chinese/codes).
+        const matchPatterns = [
+            { idx: 12, patterns: ['泰迪头模组', '便携式头模组', '头模组/支架', '头模支架', '三角支架', '练习支架', '支架盒装', '头模组', '便携头模'] },
+            // idx 13: Be specific — avoid matching generic '毛' or '片' characters
+            { idx: 13, patterns: ['圆筒/方毛片', '毛片5个装', '方毛片', '方毛块', '圆筒毛片', '腿毛组', '前腿毛', '后腿毛', '腿部练习'] },
+            { idx: 0,  patterns: ['泰迪全身模型', '泰迪全身模'] },
+            { idx: 4,  patterns: ['比熊全身模型', '比熊全身模'] },
+            { idx: 8,  patterns: ['拉姆全身模型', '拉姆全身模'] },
+            { idx: 10, patterns: ['多功能小犬模型', '多功能小犬', '小犬模型'] },
+            { idx: 1,  patterns: ['泰迪/拉姆全身毛', '泰迪全身毛', '拉姆全身毛'] },
+            { idx: 5,  patterns: ['比熊全身毛'] },
+            { idx: 11, patterns: ['小犬全身毛'] },
+            { idx: 2,  patterns: ['泰迪头模'] },
+            { idx: 3,  patterns: ['泰迪头毛'] },
+            { idx: 6,  patterns: ['比熊头模'] },
+            { idx: 7,  patterns: ['比熊头毛'] },
+            { idx: 9,  patterns: ['剪刀收纳架', '剪刀收纳'] },
+        ];
+
+        function matchProduct(text) {
+            if (!text) return -1;
+            for (const entry of matchPatterns) {
+                for (const pat of entry.patterns) {
+                    if (text.includes(pat)) return entry.idx;
+                }
+            }
+            return -1;
+        }
+
+        function extractQty(rest) {
+            if (!rest) return 0;
+            let m;
+            // x5, ×5, *5
+            if ((m = rest.match(/[x×*]\s*(\d+)/i))) return parseInt(m[1]);
+            // qty:5, 数量:5, 数量 5, count:5
+            if ((m = rest.match(/(?:qty|quantity|数量|count)\s*[:：]?\s*(\d+)/i))) return parseInt(m[1]);
+            // : 5 (after colon, common in "产品名: 5")
+            if ((m = rest.match(/[:：]\s*(\d+)/))) return parseInt(m[1]);
+            // number + unit (5个, 5件, 5pcs, 5set, 5箱)
+            if ((m = rest.match(/(\d+)\s*(?:个|件|pcs|set|套|箱|box)/i))) return parseInt(m[1]);
+            // Remove SKU/code-like patterns then take first number
+            rest = rest.replace(/(?:sku|编号|code|no|item|货号)[\s:.\-]*\d+/gi, ' ');
+            const nums = rest.match(/\d+/g);
+            if (nums && nums.length > 0) return parseInt(nums[0]);
+            return 0;
+        }
+
+        function parseLine(line) {
+            if (!line || !line.trim()) return null;
+            const t = line.trim();
+
+            // Check detail map first (product codes, English names, Chinese names with divisors)
+            const detail = lookupDetail(t);
+            if (detail) {
+                if (detail.calcIdx < 0) return null; // Accessories — skip
+                let rest = t;
+                if (detail.code) rest = rest.replace(detail.code, ' ');
+                if (detail.en) rest = rest.replace(new RegExp(detail.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
+                if (detail.cn) rest = rest.replace(detail.cn, ' ');
+                const rawQty = extractQty(rest);
+                const calcQty = rawQty / detail.div;
+                return { idx: detail.calcIdx, qty: calcQty, raw: rawQty, div: detail.div, name: products[detail.calcIdx].name };
+            }
+
+            // Fall back to product name matching
+            const productIdx = matchProduct(t);
+            if (productIdx < 0) return null;
+
+            // Remove the full product name and its "/" parts to isolate the quantity
+            let rest = line;
+            const pname = products[productIdx].name;
+            rest = rest.split(pname).join(' ');
+            pname.split('/').forEach(part => {
+                const p = part.trim();
+                if (p.length > 1) rest = rest.split(p).join(' ');
+            });
+
+            const qty = extractQty(rest);
+            return { idx: productIdx, qty: qty, name: pname };
+        }
+
+        function parseText(text) {
+            let lines = text.split(/\r?\n/);
+            // If single line, try splitting by semicolons / multiple spaces / tabs
+            if (lines.length <= 1) {
+                lines = text.split(/[;,，；\t]| {3,}/);
+            }
+            const matched = [];
+            const unmatched = [];
+            const skipRe = /^(total|subtotal|合计|总计|amount|sum|日期|date|订单|order|invoice|no\.?|页|page|company|公司|地址|address|tel|phone|电话|联系人)/i;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line || line.length < 2) return;
+                if (skipRe.test(line)) return;
+                const result = parseLine(line);
+                if (result) {
+                    matched.push(result);
+                } else {
+                    unmatched.push(line);
+                }
+            });
+            return { matched: matched, unmatched: unmatched };
+        }
+
+        function parseExcel(data) {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (rows.length === 0) return { matched: [], unmatched: [] };
+
+            // Detect header row and columns — search first 3 rows for header keywords
+            let nameCol = -1, qtyCol = -1, dataStart = 0;
+            for (let ri = 0; ri < Math.min(rows.length, 3); ri++) {
+                const row = rows[ri].map(c => String(c || '').toLowerCase()).map(c => c.trim());
+                row.forEach((cell, ci) => {
+                    // Skip "product number" / "编号" headers — they're codes, not names
+                    const isCodeCol = /(?:product|item|货).*(?:number|no|编号|代码|code)/i.test(cell);
+                    if (nameCol < 0 && !isCodeCol && /产品|product|item|名称|name|variety|description|品名/.test(cell)) {
+                        nameCol = ci; dataStart = ri + 1;
+                    }
+                    if (qtyCol < 0 && /数量|qty|quantit|count|数/.test(cell)) {
+                        qtyCol = ci; dataStart = Math.max(dataStart, ri + 1);
+                    }
+                });
+            }
+
+            // Auto-detect columns if headers not found
+            if (nameCol < 0 || qtyCol < 0) {
+                // Skip the title row (row 0) if it looks like a single merged cell
+                let autoStart = 0;
+                const row0Used = rows[0].filter(c => String(c || '').trim()).length;
+                if (row0Used <= 2 && rows.length > 2) autoStart = 1;
+
+                const maxCols = Math.max(...rows.map(r => r.length));
+                for (let ci = 0; ci < maxCols; ci++) {
+                    let textCount = 0, numCount = 0, emptyCount = 0;
+                    const sampleRows = Math.min(rows.length, 20);
+                    for (let ri = autoStart; ri < sampleRows; ri++) {
+                        const cell = rows[ri] ? rows[ri][ci] : '';
+                        const s = String(cell).trim();
+                        if (!s) { emptyCount++; continue; }
+                        if (/^-?\d+(\.\d+)?$/.test(s)) numCount++;
+                        else textCount++;
+                    }
+                    const total = textCount + numCount;
+                    if (nameCol < 0 && textCount > 0 && textCount >= numCount * 0.5) nameCol = ci;
+                    // For qty: prefer columns with mostly numbers and low emptiness at the end
+                    if (qtyCol < 0 && numCount > 0 && numCount >= total * 0.4) qtyCol = ci;
+                }
+                if (dataStart === 0) dataStart = autoStart;
+            }
+
+            if (nameCol < 0) {
+                return parseText(rows.map(r => r.join('  ')).join('\n'));
+            }
+
+            const matched = [];
+            const unmatched = [];
+            for (let ri = dataStart; ri < rows.length; ri++) {
+                const row = rows[ri] || [];
+                const name = row[nameCol] ? String(row[nameCol]).trim() : '';
+                if (!name || name.length < 2) continue;
+
+                // Build a text line with name + qty for unified parseLine matching
+                let rawQty = 0;
+                let hasQtyCol = false;
+                if (qtyCol >= 0) {
+                    hasQtyCol = true;
+                    const qcell = String(row[qtyCol] || '').trim();
+                    const m = qcell.match(/\d+/);
+                    if (m) rawQty = parseInt(m[0]);
+                }
+                // Skip rows where qty column exists but is empty (product not ordered)
+                if (hasQtyCol && rawQty === 0) continue;
+                const line = name + ' ' + (rawQty > 0 ? rawQty : '');
+                const result = parseLine(line);
+                if (result) {
+                    matched.push(result);
+                } else {
+                    unmatched.push(name);
+                }
+            }
+            return { matched: matched, unmatched: unmatched };
+        }
+
+        async function parsePDF(data) {
+            const loadingTask = pdfjsLib.getDocument({ data: data });
+            const pdf = await loadingTask.promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                // Reconstruct lines by grouping text items by Y position
+                const lineMap = new Map();
+                content.items.forEach(item => {
+                    if (!item.str || !item.str.trim()) return;
+                    const y = Math.round(item.transform[5] / 3) * 3;
+                    if (!lineMap.has(y)) lineMap.set(y, []);
+                    lineMap.get(y).push({ x: item.transform[4], str: item.str });
+                });
+                const sortedYs = [...lineMap.keys()].sort((a, b) => b - a);
+                for (const y of sortedYs) {
+                    const items = lineMap.get(y).sort((a, b) => a.x - b.x);
+                    const lineText = items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+                    if (lineText) fullText += lineText + '\n';
+                }
+                fullText += '\n';
+            }
+            return parseText(fullText);
+        }
+
+        function setupUpload() {
+            const zone = document.getElementById('uploadZone');
+            const input = document.getElementById('fileInput');
+            zone.addEventListener('click', () => input.click());
+            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+            });
+            input.addEventListener('change', e => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                    input.value = '';
+                }
+            });
+            // Paste toggle
+            const toggle = document.getElementById('pasteToggle');
+            const area = document.getElementById('pasteArea');
+            toggle.addEventListener('click', () => {
+                const showing = area.classList.toggle('show');
+                toggle.textContent = showing ? '收起文字输入' : '或粘贴文字（产品名 + 数量）';
+            });
+        }
+
+        async function handleFile(file) {
+            const loading = document.getElementById('uploadLoading');
+            const status = document.getElementById('uploadStatus');
+            loading.classList.add('show');
+            status.classList.remove('show');
+
+            try {
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                let result;
+                if (ext === 'pdf') {
+                    await loadScript(PDFJS_CDN);
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN;
+                    const buf = await file.arrayBuffer();
+                    result = await parsePDF(new Uint8Array(buf));
+                } else if (ext === 'xls' || ext === 'xlsx') {
+                    await loadScript(XLSX_CDN);
+                    const buf = await file.arrayBuffer();
+                    result = parseExcel(new Uint8Array(buf));
+                } else if (ext === 'csv') {
+                    const text = await file.text();
+                    result = parseText(text);
+                } else {
+                    // txt or other text-based files
+                    const text = await file.text();
+                    result = parseText(text);
+                }
+                applyResult(result);
+            } catch (err) {
+                console.error('Parse error:', err);
+                showStatus('error', 0, '解析失败: ' + (err.message || '未知错误') + '。请检查文件格式或网络连接后重试。');
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function applyResult(result) {
+            if (!result) {
+                showStatus('error', 0, '无法识别文件内容，请确保文件包含产品名称和数量。');
+                return;
+            }
+            const matched = result.matched || [];
+
+            if (matched.length === 0) {
+                showStatus('error', 0, '未匹配到任何产品。请确认文件中包含产品名称（如"泰迪全身模型""比熊头毛"等）。');
+                return;
+            }
+
+            // Reset all quantities
+            products.forEach((_, i) => { document.getElementById('q' + i).value = 0; });
+
+            // Aggregate (sum duplicates)
+            const qtyMap = {};
+            matched.forEach(m => {
+                qtyMap[m.idx] = (qtyMap[m.idx] || 0) + (m.qty || 0);
+            });
+            Object.entries(qtyMap).forEach(([idx, qty]) => {
+                const input = document.getElementById('q' + idx);
+                if (input) input.value = Number.isInteger(qty) ? qty : parseFloat(qty.toFixed(2));
+            });
+
+            calc();
+            showStatus('success', matched.length);
+        }
+
+        function parsePaste() {
+            const text = document.getElementById('pasteText').value;
+            if (!text.trim()) return;
+            const result = parseText(text);
+            applyResult(result);
+        }
+
+        function showStatus(type, count, errorMsg) {
+            const status = document.getElementById('uploadStatus');
+            status.classList.add('show');
+
+            if (type === 'error') {
+                status.innerHTML = '<div class="us-summary error">⚠️ ' + errorMsg + '</div>';
+                return;
+            }
+
+            status.innerHTML = '<div class="us-summary">✅ 已导入 <strong>' + count + '</strong> 种产品</div>';
+            setTimeout(function() { status.classList.remove('show'); }, 3000);
+        }
+
+
+        window.onload = function() { create(); setupUpload(); };
+    </script>
+</body>
+</html>
